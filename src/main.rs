@@ -1,0 +1,256 @@
+extern crate argparse;
+extern crate procinfo;
+extern crate unshare;
+#[macro_use] extern crate text_io;
+
+use std::fs::{self, DirEntry, File};
+use std::path::{Path, PathBuf};
+use std::io::{Read, Result};
+use std::collections::HashMap;
+
+use procinfo::pid;
+use procinfo::pid::Stat;
+
+use unshare::Namespace;
+use argparse::{ArgumentParser, Collect};
+
+struct NsCtx {
+    nsid: u64,
+    nstype: Namespace,
+}
+
+struct StatNs {
+    cmdline: String,
+    stat: Stat,
+    nses: Vec<NsCtx>,
+}
+
+impl StatNs {
+    fn print_nses(&self) {
+        let ref self_nses = self.nses;
+        for nsctx in self_nses {
+            print!("{} ", ns_const_to_str(&nsctx.nstype));
+        }
+        println!("");
+    }
+}
+
+impl IntoIterator for StatNs {
+    type Item = NsCtx;
+    type IntoIter = ::std::vec::IntoIter<NsCtx>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.nses.into_iter()
+    }
+}
+
+struct ListNs {
+    nstype: Namespace,
+    nproc: u32,
+    pid: i32,
+    ppid: i32,
+    command: String,
+}
+
+impl ListNs {
+    fn print_nses(&self) {
+        print!("{} {} {} {}", self.nproc, self.pid, self.ppid, self.command);
+        println!("");
+    }
+}
+
+fn get_next_pid(entry: &DirEntry) -> Option<i32> {
+    let path = entry.path();
+    if !path.is_dir() {
+        return None
+    }
+
+    let filename = entry.file_name().into_string().unwrap();
+    if !filename.chars().nth(0).unwrap().is_digit(10) {
+        return None
+    }
+    match filename.parse::<i32>() {
+        Ok(n) => Some(n),
+        Err(_) => None
+    }
+}
+
+fn ns_str_to_const(nsname: &str) -> Option<Namespace> {
+    match nsname.as_ref() {
+        "ipc" => Some(Namespace::Ipc),
+        "mnt" => Some(Namespace::Mount),
+        "net" => Some(Namespace::Net),
+        "pid" => Some(Namespace::Pid),
+        "user" => Some(Namespace::User),
+        "uts" => Some(Namespace::Uts),
+        _ => None,
+    }
+}
+
+fn ns_const_to_str<'a>(ns: &Namespace) -> &'a str {
+    match ns {
+        &Namespace::Ipc => "ipc",
+        &Namespace::Mount => "mount",
+        &Namespace::Net => "net",
+        &Namespace::Pid => "pid",
+        &Namespace::User => "user",
+        &Namespace::Uts => "uts",
+    }
+}
+
+fn ns_symlink_to_ino(symlink_ns: &str) -> u64 {
+    let nstype: String;
+    let nsino: u64;
+    scan!(symlink_ns.bytes() => "{}:[{}]", nstype, nsino);
+
+    nsino
+}
+
+fn get_ns_stat(entry: &DirEntry) -> Option<Vec<NsCtx>> {
+    let pathbuf = PathBuf::from(entry.path());
+    let mut result_ns: Vec<NsCtx> = Vec::<NsCtx>::new();
+
+    let pathbuf = pathbuf.join("ns");
+    if !pathbuf.is_dir() {
+        return None
+    }
+
+    match fs::read_dir(pathbuf) {
+        Ok(paths) => for entry in paths {
+            let entry = entry.unwrap();
+            let path = &entry.path();
+            if fs::symlink_metadata(path).unwrap().file_type().is_symlink() {
+                let fname_os = entry.file_name();
+                let filename = fname_os.to_str().unwrap();
+                let nsconst = ns_str_to_const(filename);
+
+                let path_link = path.read_link().unwrap();
+                let fname_path_link = path_link.to_str().unwrap();
+                let ino = ns_symlink_to_ino(fname_path_link);
+
+                match nsconst {
+                    Some(_) => result_ns.push(NsCtx {
+                        nsid: ino,
+                        nstype: nsconst.unwrap(),
+                    }),
+                    None => continue,
+                }
+            }
+        },
+        Err(reason) => {
+            println!("Cannot read the directory: {:?}", reason.kind());
+        }
+    }
+
+    Some(result_ns)
+}
+
+fn read_proc_dir(dir: &Path) -> Result<HashMap<i32, StatNs>> {
+    let mut result_smap: HashMap<i32, StatNs> = HashMap::new();
+
+    if !dir.is_dir() {
+        return Ok(result_smap);
+    }
+
+    for entry in fs::read_dir(dir).unwrap() {
+        let entry = entry.unwrap();
+        if let Some(pid) = get_next_pid(&entry) {
+//            println!("pid = {}", pid);
+            match pid::stat(pid) {
+                Ok(ps) => {
+                    let mut data = String::new();
+                    let mut pathbuf = entry.path();
+
+                    pathbuf = pathbuf.join("cmdline");
+                    if !pathbuf.is_file() {
+                        continue;
+                    }
+
+                    let path = pathbuf.as_path();
+
+                    let mut fh = File::open(path).unwrap();
+                    fh.read_to_string(&mut data).unwrap();
+                    let statns = StatNs {
+                        cmdline: data,
+                        stat: ps,
+                        nses: get_ns_stat(&entry).unwrap(),
+                    };
+                    if !statns.nses.is_empty() {
+                        result_smap.insert(pid, statns);
+                    }
+                },
+                Err(_) => continue
+            }
+        }
+    }
+
+    Ok(result_smap)
+}
+
+fn convert_to_nslist(smap: HashMap<i32, StatNs>) -> HashMap<u64, ListNs> {
+    let mut result_nslist: HashMap<u64, ListNs> = HashMap::new();
+
+    let vec_result: Vec<(i32, StatNs)> = smap.into_iter().collect();
+
+    for (pid, statns) in vec_result {
+//        println!("pid: {}", pid);
+//        statns.print_nses();
+
+        let s_nses = statns.nses;
+        for nsctx in s_nses {
+            let nsid = nsctx.nsid;
+
+            if result_nslist.contains_key(&nsid) {
+                let mut listns = result_nslist.get_mut(&nsid).unwrap();
+                *listns = ListNs {
+                    nstype: nsctx.nstype,
+                    nproc: listns.nproc + 1,
+                    pid: statns.stat.pid,
+                    ppid: statns.stat.ppid,
+                    command: statns.cmdline.clone(),
+                };
+            } else {
+                result_nslist.insert(nsid, ListNs {
+                    nstype: nsctx.nstype,
+                    nproc: 1,
+                    pid: statns.stat.pid,
+                    ppid: statns.stat.ppid,
+                    command: statns.cmdline.clone(),
+                });
+            }
+        }
+    }
+
+    result_nslist
+}
+
+fn print_nslist(nslist: HashMap<u64, ListNs>) {
+    let vec_result: Vec<(u64, ListNs)> = nslist.into_iter().collect();
+
+    println!("NSID NSTYPE NPROC PID PPID COMMAND");
+    for (nsid, listns) in vec_result {
+        print!("{} {} ", nsid, ns_const_to_str(&listns.nstype));
+        listns.print_nses();
+    }
+}
+
+fn main() {
+    let mut args: Vec<String> = Vec::new();
+
+    {
+        let mut ap = ArgumentParser::new();
+
+        ap.set_description("List all Linux namespaces");
+        ap.refer(&mut args)
+            .add_argument("arg", Collect, "Arguments for the command")
+            .required();
+        ap.stop_on_first_argument(false);
+        ap.parse_args_or_exit();
+    }
+
+    let result_smap = read_proc_dir(&Path::new("/proc")).unwrap();
+
+    let result_nslist = convert_to_nslist(result_smap);
+
+    print_nslist(result_nslist);
+}
