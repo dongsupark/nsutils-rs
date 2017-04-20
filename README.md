@@ -1,4 +1,4 @@
-# lsns
+# nsutils-rs
 
 _Command-line utilities written in Rust for making use of Linux namespaces._
 

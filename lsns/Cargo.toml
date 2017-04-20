@@ -1,7 +1,7 @@
 [package]
-name = "nsutils"
+name = "lsns"
 description = """
-    Command-line utilities for making use of Linux namespaces
+    List all Linux namespaces
 """
 license = "MIT/Apache-2.0"
 readme = "README.md"
@@ -12,8 +12,11 @@ version = "0.0.1"
 authors = ["Dongsu Park <dpark@posteo.net>"]
 
 [dependencies]
-lsns = { path = "lsns", version = "0.0.1" }
+argparse = "0.2.1"
+procinfo = "0.3.1"
+unshare = "0.1.14"
+text_io = "0.1.6"
 
-[lib]
-doctest = false
-
+[[bin]]
+name = "lsns"
+path = "src/main.rs"
