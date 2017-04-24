@@ -1,5 +1,7 @@
 # nsutils-rs
 
+[![Build Status](https://travis-ci.org/dongsupark/nsutils-rs.svg?branch=master)](https://travis-ci.org/dongsupark/nsutils-rs)
+
 _Command-line utilities written in Rust for making use of Linux namespaces._
 
 *highly experimental*
