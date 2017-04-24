@@ -25,16 +25,6 @@ struct StatNs {
     nses: Vec<NsCtx>,
 }
 
-impl StatNs {
-    fn print_nses(&self) {
-        let ref self_nses = self.nses;
-        for nsctx in self_nses {
-            print!("{} ", ns_const_to_str(&nsctx.nstype));
-        }
-        println!("");
-    }
-}
-
 impl IntoIterator for StatNs {
     type Item = NsCtx;
     type IntoIter = ::std::vec::IntoIter<NsCtx>;
@@ -187,13 +177,10 @@ fn read_proc_dir(dir: &Path) -> Result<Vec<StatNs>> {
     Ok(result_svec)
 }
 
-fn convert_to_nslist(svec: Vec<StatNs>) -> HashMap<u64, ListNs> {
+fn statns_to_nslist(svec: Vec<StatNs>) -> HashMap<u64, ListNs> {
     let mut result_nslist: HashMap<u64, ListNs> = HashMap::new();
 
     for statns in svec {
-//        println!("pid: {}", statns.stat.pid);
-//        statns.print_nses();
-
         let s_nses = statns.nses;
         for nsctx in s_nses {
             let nsid = nsctx.nsid;
@@ -248,7 +235,7 @@ fn main() {
 
     let result_svec = read_proc_dir(&Path::new("/proc")).unwrap();
 
-    let result_nslist = convert_to_nslist(result_svec);
+    let result_nslist = statns_to_nslist(result_svec);
 
     print_nslist(result_nslist);
 }
