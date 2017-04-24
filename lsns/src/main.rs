@@ -145,17 +145,16 @@ fn get_ns_stat(entry: &DirEntry) -> Option<Vec<NsCtx>> {
     Some(result_ns)
 }
 
-fn read_proc_dir(dir: &Path) -> Result<HashMap<i32, StatNs>> {
-    let mut result_smap: HashMap<i32, StatNs> = HashMap::new();
+fn read_proc_dir(dir: &Path) -> Result<Vec<StatNs>> {
+    let mut result_svec: Vec<StatNs> = Vec::<StatNs>::new();
 
     if !dir.is_dir() {
-        return Ok(result_smap);
+        return Ok(result_svec);
     }
 
     for entry in fs::read_dir(dir).unwrap() {
         let entry = entry.unwrap();
         if let Some(pid) = get_next_pid(&entry) {
-//            println!("pid = {}", pid);
             match pid::stat(pid) {
                 Ok(ps) => {
                     let mut data = String::new();
@@ -176,7 +175,7 @@ fn read_proc_dir(dir: &Path) -> Result<HashMap<i32, StatNs>> {
                         nses: get_ns_stat(&entry).unwrap(),
                     };
                     if !statns.nses.is_empty() {
-                        result_smap.insert(pid, statns);
+                        result_svec.push(statns);
                     }
                 },
                 Err(_) => continue
@@ -184,16 +183,15 @@ fn read_proc_dir(dir: &Path) -> Result<HashMap<i32, StatNs>> {
         }
     }
 
-    Ok(result_smap)
+    result_svec.sort_by_key(|k| k.stat.pid);
+    Ok(result_svec)
 }
 
-fn convert_to_nslist(smap: HashMap<i32, StatNs>) -> HashMap<u64, ListNs> {
+fn convert_to_nslist(svec: Vec<StatNs>) -> HashMap<u64, ListNs> {
     let mut result_nslist: HashMap<u64, ListNs> = HashMap::new();
 
-    let vec_result: Vec<(i32, StatNs)> = smap.into_iter().collect();
-
-    for (pid, statns) in vec_result {
-//        println!("pid: {}", pid);
+    for statns in svec {
+//        println!("pid: {}", statns.stat.pid);
 //        statns.print_nses();
 
         let s_nses = statns.nses;
@@ -248,9 +246,9 @@ fn main() {
         ap.parse_args_or_exit();
     }
 
-    let result_smap = read_proc_dir(&Path::new("/proc")).unwrap();
+    let result_svec = read_proc_dir(&Path::new("/proc")).unwrap();
 
-    let result_nslist = convert_to_nslist(result_smap);
+    let result_nslist = convert_to_nslist(result_svec);
 
     print_nslist(result_nslist);
 }
