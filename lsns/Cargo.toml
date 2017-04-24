@@ -12,7 +12,7 @@ version = "0.0.2"
 authors = ["Dongsu Park <dpark@posteo.net>"]
 
 [dependencies]
-nsutils = "0.0.2"
+nsutils = "0.*"
 argparse = "0.2.1"
 procinfo = "0.3.1"
 text_io = "0.1.6"
