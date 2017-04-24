@@ -8,11 +8,11 @@ readme = "README.md"
 keywords = ["linux", "container", "namespace", "process"]
 homepage = "https://github.com/dongsupark/nsutils-rs"
 documentation = "http://github.com/dongsupark/nsutils-rs"
-version = "0.0.1"
+version = "0.0.2"
 authors = ["Dongsu Park <dpark@posteo.net>"]
 
 [dependencies]
-lsns = { path = "lsns", version = "0.0.1" }
+lsns = { path = "lsns", version = "0.*" }
 procinfo = "0.3.1"
 text_io = "0.1.6"
 unshare = "0.1.14"
