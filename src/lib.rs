@@ -1,6 +1,7 @@
 extern crate procinfo;
 extern crate unshare;
-#[macro_use] extern crate text_io;
+#[macro_use]
+extern crate text_io;
 
 mod nsutils;
 
