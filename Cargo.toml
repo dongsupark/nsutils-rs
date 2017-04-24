@@ -13,7 +13,12 @@ authors = ["Dongsu Park <dpark@posteo.net>"]
 
 [dependencies]
 lsns = { path = "lsns", version = "0.0.1" }
+procinfo = "0.3.1"
+text_io = "0.1.6"
+unshare = "0.1.14"
 
 [lib]
+name = "nsutils"
+path = "src/lib.rs"
 doctest = false
 
