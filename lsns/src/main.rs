@@ -3,10 +3,10 @@ extern crate nsutils;
 extern crate procinfo;
 extern crate unshare;
 
-use std::path::Path;
 
 use argparse::{ArgumentParser, Collect};
 use nsutils::{print_nslist, read_proc_to_statns, statns_to_nslist};
+use std::path::Path;
 
 fn main() {
     let mut args: Vec<String> = Vec::new();

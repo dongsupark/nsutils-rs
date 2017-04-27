@@ -1,10 +1,11 @@
+
+
+use procinfo::pid;
+use procinfo::pid::Stat;
 use std::collections::HashMap;
 use std::fs::{self, DirEntry, File};
 use std::io::{Read, Result};
 use std::path::{Path, PathBuf};
-
-use procinfo::pid;
-use procinfo::pid::Stat;
 use unshare::Namespace;
 
 pub struct NsCtx {
@@ -164,15 +165,15 @@ fn get_ns_stat(entry: &DirEntry) -> Option<Vec<NsCtx>> {
                                                nsid: ino,
                                                nstype: nsconst.unwrap(),
                                            })
-                        }
+                        },
                         None => continue,
                     }
                 }
             }
-        }
+        },
         Err(reason) => {
             println!("Cannot read the directory: {:?}", reason.kind());
-        }
+        },
     }
 
     Some(result_ns)
@@ -210,7 +211,7 @@ pub fn read_proc_to_statns(dir: &Path) -> Result<Vec<StatNs>> {
                     if !statns.nses.is_empty() {
                         result_svec.push(statns);
                     }
-                }
+                },
                 Err(_) => continue,
             }
         }
