@@ -6,4 +6,4 @@ extern crate text_io;
 mod nsutils;
 
 pub use nsutils::{ListNs, NsCtx, StatNs};
-pub use nsutils::{read_proc_to_statns, print_nslist, statns_to_nslist};
+pub use nsutils::{ns_str_to_const, ns_const_to_str, read_proc_to_statns, statns_to_nslist};

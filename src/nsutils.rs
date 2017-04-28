@@ -29,18 +29,11 @@ impl IntoIterator for StatNs {
 }
 
 pub struct ListNs {
-    nstype: Namespace,
-    nproc: u32,
-    pid: i32,
-    ppid: i32,
-    cmdline: String,
-}
-
-impl ListNs {
-    pub fn print_nses(&self) {
-        print!("{} {} {} {}", self.nproc, self.pid, self.ppid, self.cmdline);
-        println!("");
-    }
+    pub nstype: Namespace,
+    pub nproc: u32,
+    pub pid: i32,
+    pub ppid: i32,
+    pub cmdline: String,
 }
 
 pub fn statns_to_nslist(svec: Vec<StatNs>) -> HashMap<u64, ListNs> {
@@ -76,17 +69,7 @@ pub fn statns_to_nslist(svec: Vec<StatNs>) -> HashMap<u64, ListNs> {
     result_nslist
 }
 
-pub fn print_nslist(nslist: HashMap<u64, ListNs>) {
-    let vec_result: Vec<(u64, ListNs)> = nslist.into_iter().collect();
-
-    println!("NSID NSTYPE NPROC PID PPID COMMAND");
-    for (nsid, listns) in vec_result {
-        print!("{} {} ", nsid, ns_const_to_str(&listns.nstype));
-        listns.print_nses();
-    }
-}
-
-fn ns_str_to_const(nsname: &str) -> Option<Namespace> {
+pub fn ns_str_to_const(nsname: &str) -> Option<Namespace> {
     match nsname.as_ref() {
         "ipc" => Some(Namespace::Ipc),
         "mnt" => Some(Namespace::Mount),
@@ -98,7 +81,7 @@ fn ns_str_to_const(nsname: &str) -> Option<Namespace> {
     }
 }
 
-fn ns_const_to_str<'a>(ns: &Namespace) -> &'a str {
+pub fn ns_const_to_str<'a>(ns: &Namespace) -> &'a str {
     match ns {
         &Namespace::Ipc => "ipc",
         &Namespace::Mount => "mnt",
