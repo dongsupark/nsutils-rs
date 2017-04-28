@@ -33,12 +33,12 @@ pub struct ListNs {
     nproc: u32,
     pid: i32,
     ppid: i32,
-    command: String,
+    cmdline: String,
 }
 
 impl ListNs {
     pub fn print_nses(&self) {
-        print!("{} {} {} {}", self.nproc, self.pid, self.ppid, self.command);
+        print!("{} {} {} {}", self.nproc, self.pid, self.ppid, self.cmdline);
         println!("");
     }
 }
@@ -58,7 +58,7 @@ pub fn statns_to_nslist(svec: Vec<StatNs>) -> HashMap<u64, ListNs> {
                     nproc: listns.nproc + 1,
                     pid: statns.stat.pid,
                     ppid: statns.stat.ppid,
-                    command: statns.cmdline.clone(),
+                    cmdline: statns.cmdline.clone(),
                 };
             } else {
                 result_nslist.insert(nsid,
@@ -67,7 +67,7 @@ pub fn statns_to_nslist(svec: Vec<StatNs>) -> HashMap<u64, ListNs> {
                                          nproc: 1,
                                          pid: statns.stat.pid,
                                          ppid: statns.stat.ppid,
-                                         command: statns.cmdline.clone(),
+                                         cmdline: statns.cmdline.clone(),
                                      });
             }
         }
@@ -101,7 +101,7 @@ fn ns_str_to_const(nsname: &str) -> Option<Namespace> {
 fn ns_const_to_str<'a>(ns: &Namespace) -> &'a str {
     match ns {
         &Namespace::Ipc => "ipc",
-        &Namespace::Mount => "mount",
+        &Namespace::Mount => "mnt",
         &Namespace::Net => "net",
         &Namespace::Pid => "pid",
         &Namespace::User => "user",
