@@ -1,5 +1,3 @@
-
-
 use procinfo::pid;
 use procinfo::pid::Stat;
 use std::collections::HashMap;
@@ -202,4 +200,45 @@ pub fn read_proc_to_statns(dir: &Path) -> Result<Vec<StatNs>> {
 
     result_svec.sort_by_key(|k| k.stat.pid);
     Ok(result_svec)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{ns_const_to_str, statns_to_nslist, NsCtx, StatNs};
+    use procinfo::pid::Stat;
+    use unshare::Namespace;
+
+    /// Test the statns
+    #[test]
+    fn test_statns_to_nslist() {
+        let mut listns: Vec<NsCtx> = Vec::<NsCtx>::new();
+        let test_nsid = 4000000000u64;
+        let test_pid = 12345;
+        let test_ppid = 1234;
+
+        listns.push(NsCtx {
+                        nsid: test_nsid,
+                        nstype: Namespace::Mount,
+                    });
+        let statns = StatNs {
+            cmdline: "/bin/bash".to_string(),
+            stat: Stat {
+                pid: test_pid,
+                ppid: test_ppid,
+                ..Default::default()
+            },
+            nses: listns,
+        };
+
+        let mut vec_statns: Vec<StatNs> = Vec::<StatNs>::new();
+        vec_statns.push(statns);
+
+        let map_listns = statns_to_nslist(vec_statns);
+
+        assert_eq!(ns_const_to_str(&map_listns[&test_nsid].nstype), "mnt");
+        assert_eq!(map_listns[&test_nsid].nproc, 1u32);
+        assert_eq!(map_listns[&test_nsid].pid, test_pid);
+        assert_eq!(map_listns[&test_nsid].ppid, test_ppid);
+        assert_eq!(map_listns[&test_nsid].cmdline, "/bin/bash".to_string());
+    }
 }
