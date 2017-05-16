@@ -3,6 +3,7 @@ use procinfo::pid::Stat;
 use std::collections::HashMap;
 use std::fs::{self, DirEntry, File};
 use std::io::{Read, Result};
+use std::os::unix::io::{AsRawFd, RawFd};
 use std::path::{Path, PathBuf};
 use unshare::Namespace;
 
@@ -32,6 +33,20 @@ pub struct ListNs {
     pub pid: i32,
     pub ppid: i32,
     pub cmdline: String,
+}
+
+pub struct NamespaceFile {
+    pub nstype: Namespace,
+    pub name: String,
+    pub fd: RawFd,
+}
+
+impl NamespaceFile {
+    pub fn open_file(&mut self) {
+        let ref name = self.name;
+        let file = File::open(name).unwrap();
+        self.fd = file.as_raw_fd();
+    }
 }
 
 pub fn statns_to_nslist(svec: Vec<StatNs>) -> HashMap<u64, ListNs> {

@@ -8,7 +8,7 @@ readme = "README.md"
 keywords = ["linux", "container", "namespace", "process"]
 homepage = "https://github.com/dongsupark/nsutils-rs"
 documentation = "http://github.com/dongsupark/nsutils-rs"
-version = "0.0.4"
+version = "0.0.5"
 authors = ["Dongsu Park <dpark@posteo.net>"]
 
 [dependencies]
