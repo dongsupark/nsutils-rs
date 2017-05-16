@@ -1,0 +1,23 @@
+[package]
+name = "nsenter"
+description = """
+    enter a Linux namespace
+"""
+license = "MIT/Apache-2.0"
+readme = "README.md"
+keywords = ["linux", "container", "namespace", "process"]
+homepage = "https://github.com/dongsupark/nsutils-rs"
+documentation = "http://github.com/dongsupark/nsutils-rs"
+version = "0.0.1"
+authors = ["Dongsu Park <dpark@posteo.net>"]
+
+[dependencies]
+nsutils = "0.*"
+argparse = "0.2.1"
+libc = "0.2.4"
+procinfo = "0.3.1"
+unshare = "0.1.14"
+
+[[bin]]
+name = "nsenter"
+path = "src/main.rs"
