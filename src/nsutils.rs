@@ -143,10 +143,7 @@ fn get_ns_stat(entry: &DirEntry) -> Option<Vec<NsCtx>> {
             for entry in paths {
                 let entry = entry.unwrap();
                 let path = &entry.path();
-                if fs::symlink_metadata(path)
-                       .unwrap()
-                       .file_type()
-                       .is_symlink() {
+                if fs::symlink_metadata(path).unwrap().file_type().is_symlink() {
                     let fname_os = entry.file_name();
                     let filename = fname_os.to_str().unwrap();
                     let nsconst = ns_str_to_const(filename);
